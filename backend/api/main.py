@@ -1,20 +1,26 @@
 # backend/api/main.py
-
+import os
 from fastapi import FastAPI
 from pydantic import BaseModel
 import numpy as np
 import joblib
 from tensorflow.keras.models import load_model
 
-from logic.recommendation import generate_recommendation
+from backend.logic.recommendation import generate_recommendation
+
 
 app = FastAPI(title="Stock AI Backend")
 
 # -----------------------------
 # Load ML artifacts
 # -----------------------------
-model = load_model("model/lstm_model.h5")
-scaler = joblib.load("model/scaler.pkl")
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+MODEL_PATH = os.path.join(BASE_DIR, "backend", "model", "lstm_model.h5")
+SCALER_PATH = os.path.join(BASE_DIR, "backend", "model", "scaler.pkl")
+
+model = load_model(MODEL_PATH)
+scaler = joblib.load(SCALER_PATH)
 
 TIME_STEPS = 30
 

@@ -49,3 +49,9 @@ build/
 # ===============================
 .env.local
 .env.production
+
+# .gitignore
+backend/model/
+*.h5
+*.pkl
+

@@ -1,13 +1,13 @@
 # backend/api/main.py
+
 import os
-from fastapi import FastAPI
-from pydantic import BaseModel
 import numpy as np
 import joblib
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 from tensorflow.keras.models import load_model
 
 from backend.logic.recommendation import generate_recommendation
-
 
 app = FastAPI(title="Stock AI Backend")
 
@@ -23,17 +23,19 @@ model = load_model(MODEL_PATH)
 scaler = joblib.load(SCALER_PATH)
 
 TIME_STEPS = 30
+NUM_FEATURES = 9  # ✅ UPDATED
 
 # -----------------------------
 # Request Schema
 # -----------------------------
 class StockInput(BaseModel):
     symbol: str
-    last_30_days: list  # shape: (30, 8)
+    last_30_days: list  # expected shape: (30, 9)
     current_price: float
     rsi: float
     macd: float
     vix: float
+    interest_rate: float  # ✅ NEW
 
 # -----------------------------
 # Prediction Endpoint
@@ -44,20 +46,56 @@ def predict_stock(data: StockInput):
     Returns a Stock Health Card JSON
     """
 
-    # Prepare input for LSTM
-    X = np.array(data.last_30_days).reshape(1, TIME_STEPS, -1)
-    X_scaled = scaler.transform(X.reshape(-1, X.shape[2])).reshape(X.shape)
+    # -----------------------------
+    # 1. Validate input length
+    # -----------------------------
+    if len(data.last_30_days) != TIME_STEPS:
+        raise HTTPException(
+            status_code=400,
+            detail="last_30_days must contain exactly 30 days"
+        )
 
-    # Predict
+    # -----------------------------
+    # 2. Convert to NumPy
+    # -----------------------------
+    X = np.array(data.last_30_days, dtype=np.float32)
+
+    if X.shape != (TIME_STEPS, NUM_FEATURES):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Each day must have {NUM_FEATURES} features"
+        )
+
+    # -----------------------------
+    # 3. Reshape for LSTM
+    # -----------------------------
+    X = X.reshape(1, TIME_STEPS, NUM_FEATURES)
+
+    # -----------------------------
+    # 4. Scale input
+    # -----------------------------
+    X_scaled = scaler.transform(
+        X.reshape(-1, NUM_FEATURES)
+    ).reshape(X.shape)
+
+    # -----------------------------
+    # 5. Predict
+    # -----------------------------
     predicted_scaled = model.predict(X_scaled)[0][0]
 
-    # Inverse scale Close price
-    close_index = 3  # Close position in feature list
-    dummy = np.zeros((1, X.shape[2]))
-    dummy[0, close_index] = predicted_scaled
-    predicted_price = scaler.inverse_transform(dummy)[0, close_index]
+    # -----------------------------
+    # 6. Inverse-scale Close price
+    # -----------------------------
+    CLOSE_INDEX = 3  # Close price position
 
-    # Generate human-readable logic
+    dummy = np.zeros((1, NUM_FEATURES))
+    dummy[0, CLOSE_INDEX] = predicted_scaled
+
+    predicted_price = scaler.inverse_transform(dummy)[0][CLOSE_INDEX]
+
+    # -----------------------------
+    # 7. Generate recommendation
+    # -----------------------------
     reasoning = generate_recommendation(
         current_price=data.current_price,
         predicted_price=predicted_price,
@@ -66,11 +104,14 @@ def predict_stock(data: StockInput):
         vix=data.vix
     )
 
-    # Final response (Stock Health Card)
+    # -----------------------------
+    # 8. Final response
+    # -----------------------------
     return {
         "symbol": data.symbol,
         "current_price": data.current_price,
         "predicted_price": round(predicted_price, 2),
         **reasoning,
+        "interest_rate_used": data.interest_rate,
         "disclaimer": "This is AI-based analysis, not financial advice."
     }

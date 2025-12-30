@@ -14,10 +14,9 @@ def generate_recommendation(
     reasons = []
     confidence = 0
 
-    # Expected return
     expected_return = (predicted_price - current_price) / current_price
 
-    # ---- Market Fear (VIX) ----
+    # Market Fear (VIX)
     if vix < 18:
         reasons.append("The overall market is calm")
         confidence += 25
@@ -30,14 +29,14 @@ def generate_recommendation(
         reasons.append("Market fear is high")
         risk_level = "HIGH"
 
-    # ---- Momentum (MACD) ----
+    # Momentum (MACD)
     if macd > 0:
         reasons.append("The stock has strong upward momentum")
         confidence += 25
     else:
         reasons.append("The stock momentum is weak")
 
-    # ---- Price Stretch (RSI) ----
+    # RSI
     if 40 <= rsi <= 65:
         reasons.append("The price is not overheated")
         confidence += 25
@@ -46,7 +45,7 @@ def generate_recommendation(
     else:
         reasons.append("The stock may be oversold")
 
-    # ---- Price Upside ----
+    # Upside
     if expected_return > 0.03:
         reasons.append("The model expects meaningful upside")
         confidence += 25
@@ -56,10 +55,8 @@ def generate_recommendation(
     else:
         reasons.append("The expected upside is low")
 
-    # Cap confidence
     confidence = min(confidence, 100)
 
-    # ---- Final Recommendation ----
     if confidence >= 75 and risk_level == "LOW":
         recommendation = "STRONG BUY"
     elif confidence >= 55:

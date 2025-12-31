@@ -7,62 +7,70 @@ def generate_recommendation(
     macd: float,
     vix: float
 ):
-    """
-    Converts ML outputs into human-readable investment guidance
-    """
-
     reasons = []
     confidence = 0
 
     expected_return = (predicted_price - current_price) / current_price
 
-    # Market Fear (VIX)
+    bullish = 0
+    bearish = 0
+
+    # Market Risk
     if vix < 18:
-        reasons.append("The overall market is calm")
-        confidence += 25
-        risk_level = "LOW"
+        reasons.append("Market volatility is low, supporting stable price movement")
+        confidence += 20
     elif vix < 25:
         reasons.append("Market volatility is moderate")
-        confidence += 15
-        risk_level = "MODERATE"
+        confidence += 10
     else:
-        reasons.append("Market fear is high")
-        risk_level = "HIGH"
+        reasons.append("High market volatility increases downside risk")
+        bearish += 1
 
-    # Momentum (MACD)
+    # Momentum
     if macd > 0:
-        reasons.append("The stock has strong upward momentum")
-        confidence += 25
+        reasons.append("MACD is positive, indicating bullish momentum")
+        bullish += 1
+        confidence += 20
     else:
-        reasons.append("The stock momentum is weak")
+        reasons.append("MACD is negative, indicating weak momentum")
+        bearish += 1
 
     # RSI
-    if 40 <= rsi <= 65:
-        reasons.append("The price is not overheated")
-        confidence += 25
+    if 45 <= rsi <= 65:
+        reasons.append("RSI indicates healthy price momentum")
+        bullish += 1
+        confidence += 20
     elif rsi > 70:
-        reasons.append("The stock price is already stretched")
+        reasons.append("RSI suggests the stock may be overbought")
+        bearish += 1
     else:
-        reasons.append("The stock may be oversold")
+        reasons.append("RSI suggests the stock may be oversold")
+        bullish += 1
 
     # Upside
     if expected_return > 0.03:
-        reasons.append("The model expects meaningful upside")
+        reasons.append("Model predicts strong upside potential")
+        bullish += 1
         confidence += 25
     elif expected_return > 0.01:
-        reasons.append("The model expects limited upside")
-        confidence += 15
+        reasons.append("Model predicts limited upside potential")
+        confidence += 10
     else:
-        reasons.append("The expected upside is low")
+        reasons.append("Limited upside expected")
+        bearish += 1
 
     confidence = min(confidence, 100)
 
-    if confidence >= 75 and risk_level == "LOW":
-        recommendation = "STRONG BUY"
-    elif confidence >= 55:
-        recommendation = "WAIT FOR BETTER PRICE"
-    else:
+    # Final decision
+    if bullish >= 3 and confidence >= 70:
+        recommendation = "BUY"
+        risk_level = "LOW" if vix < 20 else "MODERATE"
+    elif bearish >= 3:
         recommendation = "HIGH RISK"
+        risk_level = "HIGH"
+    else:
+        recommendation = "WAIT"
+        risk_level = "MODERATE"
 
     return {
         "recommendation": recommendation,

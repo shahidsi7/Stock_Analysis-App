@@ -6,10 +6,18 @@ import joblib
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from tensorflow.keras.models import load_model
+from fastapi.middleware.cors import CORSMiddleware
 
 from backend.logic.recommendation import generate_recommendation
 
 app = FastAPI(title="Stock AI Backend")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],      # allow frontend to call backend
+    allow_methods=["*"],      # allow POST, GET, etc.
+    allow_headers=["*"],      # allow JSON headers
+)
 
 # -----------------------------
 # Load ML artifacts
@@ -19,7 +27,8 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 MODEL_PATH = os.path.join(BASE_DIR, "backend", "model", "lstm_model.h5")
 SCALER_PATH = os.path.join(BASE_DIR, "backend", "model", "scaler.pkl")
 
-model = load_model(MODEL_PATH)
+model = load_model(MODEL_PATH, compile=False)
+
 scaler = joblib.load(SCALER_PATH)
 
 TIME_STEPS = 30

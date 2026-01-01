@@ -2,39 +2,116 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Stock AI Predictor</title>
+  <title>AI Stock Prediction Dashboard</title>
+
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
-<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center">
+<body class="bg-gray-900 text-white min-h-screen">
 
-  <div class="bg-gray-800 p-8 rounded-xl w-full max-w-md">
-    <h1 class="text-2xl font-bold mb-4 text-center">📈 Stock AI Predictor</h1>
+<div class="max-w-6xl mx-auto px-6 py-6 space-y-6">
 
+  <!-- SEARCH -->
+  <div class="bg-gray-800 rounded-xl p-5 flex gap-4 items-center">
     <input
       id="stockInput"
-      placeholder="Enter US stock (e.g. AAPL, MSFT)"
-      class="w-full p-2 rounded text-black mb-4"
+      placeholder="Search stock (AAPL, MSFT, TSLA)"
+      class="p-2 rounded text-black w-64"
     />
-
     <button
-  id="analyzeBtn"
-  onclick="analyzeStock()"
-  class="w-full bg-blue-600 hover:bg-blue-700 p-2 rounded disabled:opacity-50"
->
-  Analyze
-</button>
-
-
-<!-- Loading Spinner -->
-<div id="loader" class="hidden mt-4 flex justify-center">
-  <div class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-</div>
-
-
-    <div id="result" class="mt-6 hidden"></div>
+      id="analyzeBtn"
+      class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded font-semibold"
+    >
+      Analyze
+    </button>
   </div>
 
-  <script src="app.js"></script>
+  <!-- LOADER -->
+  <div id="loader" class="hidden flex justify-center">
+    <div class="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+  </div>
+
+  <!-- RESULT -->
+  <div id="result" class="hidden space-y-6">
+
+    <!-- VERDICT -->
+    <div id="verdictCard" class="rounded-xl p-6 text-center text-2xl font-bold"></div>
+
+    <!-- PRICE + FORECAST -->
+    <div class="bg-gray-800 rounded-xl p-5">
+      <h2 class="text-lg font-semibold mb-4">📈 Price Trend & AI Forecast</h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+
+        <!-- AI FORECAST CARD -->
+        <div
+          id="forecastCard"
+          class="bg-gray-900 rounded-xl p-4 text-center border transition-all duration-300"
+        >
+          <p class="text-sm text-gray-400">AI Forecast</p>
+          <p id="forecastDirection" class="text-3xl font-bold mt-2">—</p>
+          <p class="text-sm mt-2">
+            Confidence: <b id="forecastConfidence">—</b>
+          </p>
+          <p class="text-xs text-gray-400 mt-1">Horizon: 5 days</p>
+        </div>
+
+        <!-- CHART -->
+        <div class="md:col-span-3">
+          <canvas id="priceChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- INDICATORS -->
+    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+      <div id="rsiCard" class="bg-gray-800 rounded-xl p-4 text-center"></div>
+      <div id="macdCard" class="bg-gray-800 rounded-xl p-4 text-center"></div>
+      <div id="vixCard" class="bg-gray-800 rounded-xl p-4 text-center"></div>
+      <div id="confidenceCard" class="bg-gray-800 rounded-xl p-4 text-center"></div>
+    </div>
+
+    <!-- SIGNALS -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+      <div class="bg-green-900/30 border border-green-500 rounded-xl p-4">
+        <h3 class="font-semibold mb-2 text-green-400">✅ What Supported This View</h3>
+        <ul id="positiveSignals" class="list-disc ml-5 text-sm space-y-1"></ul>
+      </div>
+
+      <div class="bg-red-900/30 border border-red-500 rounded-xl p-4">
+        <h3 class="font-semibold mb-2 text-red-400">⚠ What Increased Risk</h3>
+        <ul id="riskSignals" class="list-disc ml-5 text-sm space-y-1"></ul>
+      </div>
+
+    </div>
+
+    <!-- CONFIDENCE BAR -->
+    <div class="bg-gray-800 rounded-xl p-4">
+      <h3 class="font-semibold mb-2">📊 Confidence Breakdown</h3>
+      <div class="w-full bg-gray-700 rounded-full h-4 overflow-hidden">
+        <div
+          id="confidenceBar"
+          class="h-4 transition-all duration-700"
+          style="width:0%"
+        ></div>
+      </div>
+      <p id="confidenceLabel" class="text-sm text-gray-300 mt-2"></p>
+    </div>
+
+    <!-- AI REASONING -->
+    <div class="bg-gray-800 rounded-xl p-5">
+      <h2 class="text-lg font-semibold mb-3">🤖 AI Reasoning</h2>
+      <div id="reasoningBox" class="text-sm text-gray-200"></div>
+    </div>
+
+  </div>
+</div>
+
+<script src="app.js"></script>
 </body>
 </html>

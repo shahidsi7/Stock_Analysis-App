@@ -1,175 +1,150 @@
-/***************************************
- * CONFIG
- ***************************************/
 const API_KEY = "9HDUU4OWY70JH6OT";
 const BACKEND_URL = "http://127.0.0.1:8000/predict";
 
-/***************************************
- * UTILITIES
- ***************************************/
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+/* DOM */
+const loader = document.getElementById("loader");
+const result = document.getElementById("result");
+const analyzeBtn = document.getElementById("analyzeBtn");
+const stockInput = document.getElementById("stockInput");
+
+const verdictCard = document.getElementById("verdictCard");
+const rsiCard = document.getElementById("rsiCard");
+const macdCard = document.getElementById("macdCard");
+const vixCard = document.getElementById("vixCard");
+const confidenceCard = document.getElementById("confidenceCard");
+
+const forecastCard = document.getElementById("forecastCard");
+const forecastDirection = document.getElementById("forecastDirection");
+const forecastConfidence = document.getElementById("forecastConfidence");
+
+const positiveSignals = document.getElementById("positiveSignals");
+const riskSignals = document.getElementById("riskSignals");
+
+const confidenceBar = document.getElementById("confidenceBar");
+const confidenceLabel = document.getElementById("confidenceLabel");
+
+const reasoningBox = document.getElementById("reasoningBox");
+
+let chartInstance = null;
+
+/* Helpers */
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+function formatDate(dateStr) {
+  return new Date(dateStr).toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short"
+  });
 }
 
-/***************************************
- * FETCH STOCK OHLCV DATA
- ***************************************/
-async function fetchStockData(symbol) {
-  const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${symbol}&apikey=${API_KEY}`;
-
-  const res = await fetch(url);
-  const data = await res.json();
-
-  // ✅ Validate response
-  if (!data || !data["Time Series (Daily)"]) {
-    console.error("Stock API error:", data);
-    throw new Error(
-  "Invalid stock symbol or unsupported market. Try US stocks like AAPL, MSFT, TSLA."
-);
-
-  }
-
-  // ✅ Rate-limit protection
-  await sleep(1200);
-
-  return data["Time Series (Daily)"];
-}
-
-/***************************************
- * TECHNICAL INDICATORS
- ***************************************/
+/* Indicators */
 function calculateRSI(closes, period = 14) {
-  if (closes.length < period + 1) return 50;
-
-  let gains = 0;
-  let losses = 0;
-
-  const recent = closes.slice(-1 * (period + 1));
-
-  for (let i = 1; i < recent.length; i++) {
-    const diff = recent[i] - recent[i - 1];
-    if (diff >= 0) gains += diff;
-    else losses -= diff;
+  let gains = 0, losses = 0;
+  for (let i = closes.length - period; i < closes.length - 1; i++) {
+    const diff = closes[i + 1] - closes[i];
+    diff >= 0 ? gains += diff : losses -= diff;
   }
-
-  if (losses === 0) return 100;
-
-  const rs = gains / losses;
-  return 100 - (100 / (1 + rs));
+  return losses === 0 ? 100 : +(100 - 100 / (1 + gains / losses)).toFixed(2);
 }
-
 
 function ema(values, period) {
   const k = 2 / (period + 1);
-  let emaArr = [values[0]];
-
+  let e = values[0];
   for (let i = 1; i < values.length; i++) {
-    emaArr.push(values[i] * k + emaArr[i - 1] * (1 - k));
+    e = values[i] * k + e * (1 - k);
   }
-
-  return emaArr;
+  return e;
 }
 
 function calculateMACD(closes) {
-  const ema12 = ema(closes, 12);
-  const ema26 = ema(closes, 26);
-  return ema12[ema12.length - 1] - ema26[ema26.length - 1];
+  return +(ema(closes, 12) - ema(closes, 26)).toFixed(4);
 }
 
-/***************************************
- * MACRO DATA (SAFE FALLBACKS)
- ***************************************/
-function fetchVIX() {
-  // US VIX fallback (normal market volatility)
-  return 18;
+/* Fetch stock */
+async function fetchStockData(symbol) {
+  const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${symbol}&apikey=${API_KEY}`;
+  const res = await fetch(url);
+  const data = await res.json();
+
+  if (!data["Time Series (Daily)"]) {
+    throw new Error("Invalid symbol or API limit reached");
+  }
+
+  await sleep(1200);
+  return data["Time Series (Daily)"];
 }
 
+/* Chart */
+function drawChart(dates, closes, predicted) {
+  if (chartInstance) chartInstance.destroy();
 
-function getRepoRate() {
-  return 5.25; // US Fed Funds Rate (static)
+  const ctx = document.getElementById("priceChart");
+
+  chartInstance = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: [...dates.map(formatDate), "Prediction"],
+      datasets: [
+        {
+          label: "Price",
+          data: closes,
+          borderColor: "#3b82f6",
+          tension: 0.4
+        },
+        {
+          label: "AI Prediction",
+          data: [...Array(closes.length - 1).fill(null), closes.at(-1), predicted],
+          borderColor: "#22c55e",
+          borderDash: [6, 6],
+          pointRadius: 6
+        }
+      ]
+    },
+    options: {
+      plugins: { legend: { labels: { color: "white" } } },
+      scales: {
+        x: { ticks: { color: "white" } },
+        y: { ticks: { color: "white" } }
+      }
+    }
+  });
 }
 
-
-/***************************************
- * MAIN ANALYSIS FUNCTION
- ***************************************/
-
-function showLoader() {
-  document.getElementById("loader").classList.remove("hidden");
-}
-
-function hideLoader() {
-  document.getElementById("loader").classList.add("hidden");
-}
-
-function disableButton() {
-  document.getElementById("analyzeBtn").disabled = true;
-}
-
-function enableButton() {
-  document.getElementById("analyzeBtn").disabled = false;
-}
-
-
+/* MAIN */
 async function analyzeStock() {
-  const resultDiv = document.getElementById("result");
-  resultDiv.classList.add("hidden");
-
-  showLoader();
-  disableButton();
+  loader.classList.remove("hidden");
+  result.classList.add("hidden");
 
   try {
-    const input = document.getElementById("stockInput").value.trim();
+    const symbol = stockInput.value.trim().toUpperCase();
+    if (!symbol) throw new Error("Enter stock symbol");
 
-    if (!input) {
-       alert("Please enter a stock symbol");
-      return;
-    }
-
-    const symbol = input.toUpperCase(); // e.g. AAPL, MSFT
-
-    const rawData = await fetchStockData(symbol);
-    const dates = Object.keys(rawData).slice(0, 70).reverse();
-
-    if (dates.length < 60) {
-      throw new Error("Not enough historical data");
-    }
+    const raw = await fetchStockData(symbol);
+    const dates = Object.keys(raw).reverse().slice(-30);
 
     const rows = dates.map(d => ({
-      open: +rawData[d]["1. open"],
-      high: +rawData[d]["2. high"],
-      low: +rawData[d]["3. low"],
-      close: +rawData[d]["4. close"],
-      volume: +rawData[d]["5. volume"]
+      open: +raw[d]["1. open"],
+      high: +raw[d]["2. high"],
+      low: +raw[d]["3. low"],
+      close: +raw[d]["4. close"],
+      volume: +raw[d]["5. volume"]
     }));
 
     const closes = rows.map(r => r.close);
-
     const rsi = calculateRSI(closes);
     const macd = calculateMACD(closes);
-    const vix = fetchVIX();
-    const interestRate = getRepoRate();
-
-    const last30 = rows.slice(-30).map(r => ([
-      r.open,
-      r.high,
-      r.low,
-      r.close,
-      r.volume,
-      rsi,
-      macd,
-      vix,
-      interestRate
-    ]));
+    const vix = 18;
 
     const payload = {
-      symbol: input,
-      last_30_days: last30,
-      current_price: closes[closes.length - 1],
+      symbol,
+      last_30_days: rows.map(r => [
+        r.open, r.high, r.low, r.close, r.volume, rsi, macd, vix, 5.25
+      ]),
+      current_price: closes.at(-1),
       rsi,
       macd,
       vix,
-      interest_rate: interestRate
+      interest_rate: 5.25
     };
 
     const res = await fetch(BACKEND_URL, {
@@ -179,41 +154,134 @@ async function analyzeStock() {
     });
 
     if (!res.ok) {
-      throw new Error("Backend prediction failed");
+      const err = await res.json();
+      throw new Error(err.detail || "Backend error");
     }
 
     const data = await res.json();
-    showResult(data);
+    renderResult(data, dates, closes);
 
   } catch (err) {
+    alert(err.message);
     console.error(err);
-    alert(err.message || "Something went wrong");
-  } finally {
-    // ✅ ALWAYS runs (success OR error)
-    hideLoader();
-    enableButton();
   }
+
+  loader.classList.add("hidden");
 }
 
-/***************************************
- * UI RENDER
- ***************************************/
-function showResult(data) {
-  const div = document.getElementById("result");
-  div.classList.remove("hidden");
+/* UI RENDER */
+function renderResult(data, dates, closes) {
+  if (!data?.explanation) {
+    alert("Invalid backend response");
+    return;
+  }
 
-  div.innerHTML = `
-    <div class="mt-4 bg-gray-700 p-4 rounded">
-      <p><b>Stock:</b> ${data.symbol}</p>
-      <p><b>Current Price:</b> $${data.current_price}</p>
-      <p><b>Predicted Price:</b> $${data.predicted_price}</p>
-      <p><b>Recommendation:</b> ${data.recommendation}</p>
-      <p><b>Confidence:</b> ${data.confidence_score}%</p>
-      <p><b>Risk Level:</b> ${data.risk_level}</p>
-      <p class="mt-2 font-semibold">Why?</p>
-      <ul class="list-disc ml-5">
-        ${data.why_this_recommendation.map(r => `<li>${r}</li>`).join("")}
-      </ul>
+  result.classList.remove("hidden");
+
+  verdictCard.innerText = `${data.recommendation} (${data.risk_level})`;
+  rsiCard.innerHTML = `<b>RSI</b><br>${data.rsi}`;
+  macdCard.innerHTML = `<b>MACD</b><br>${data.macd}`;
+  vixCard.innerHTML = `<b>VIX</b><br>${data.vix}`;
+  confidenceCard.innerHTML = `<b>Confidence</b><br>${data.confidence_score}%`;
+
+  /* Forecast color logic */
+const isUptrend = data.predicted_price >= data.current_price;
+const confidence = data.confidence_score;
+
+// reset all possible states
+forecastCard.classList.remove(
+  "border-green-500", "text-green-400",
+  "border-yellow-500", "text-yellow-400",
+  "border-red-500", "text-red-400",
+  "border-orange-500", "text-orange-400"
+);
+
+// text
+forecastDirection.innerText = isUptrend ? "▲ Uptrend" : "▼ Downtrend";
+forecastConfidence.innerText = `${confidence}%`;
+
+// UX-friendly logic
+if (isUptrend && confidence >= 70) {
+  // strong bullish
+  forecastCard.classList.add("border-green-500", "text-green-400");
+
+} else if (isUptrend && confidence >= 50) {
+  // cautious bullish
+  forecastCard.classList.add("border-yellow-500", "text-yellow-400");
+
+} else if (!isUptrend && confidence >= 60) {
+  // strong bearish
+  forecastCard.classList.add("border-red-500", "text-red-400");
+
+} else {
+  // weak / uncertain
+  forecastCard.classList.add("border-orange-500", "text-orange-400");
+}
+
+
+  /* Positive signals */
+  positiveSignals.innerHTML = "";
+
+  if (data.rsi >= 45 && data.rsi <= 65) {
+    positiveSignals.innerHTML += `
+      <li><b>Healthy RSI (${data.rsi})</b> – Balanced buying pressure <span class="text-green-400">[Strong]</span></li>`;
+  }
+
+  if (data.macd > 0) {
+    positiveSignals.innerHTML += `
+      <li><b>Positive MACD</b> – Bullish momentum confirmed <span class="text-green-400">[Strong]</span></li>`;
+  }
+
+  if (data.predicted_price > data.current_price) {
+    positiveSignals.innerHTML += `
+      <li><b>AI forecast above market price</b> – Upside potential detected <span class="text-green-400">[Moderate]</span></li>`;
+  }
+
+  /* Risk signals */
+  riskSignals.innerHTML = "";
+
+  if (data.vix >= 25) {
+    riskSignals.innerHTML += `
+      <li><b>High market volatility</b> – Sudden swings possible <span class="text-red-400">[High]</span></li>`;
+  } else if (data.vix >= 18) {
+    riskSignals.innerHTML += `
+      <li><b>Moderate volatility</b> – Short-term fluctuations likely <span class="text-yellow-400">[Medium]</span></li>`;
+  }
+
+  if (data.confidence_score < 60) {
+    riskSignals.innerHTML += `
+      <li><b>Moderate confidence</b> – Signals not fully aligned <span class="text-yellow-400">[Medium]</span></li>`;
+  }
+
+  if (!riskSignals.innerHTML) {
+    riskSignals.innerHTML = `<li>No major downside risks identified.</li>`;
+  }
+
+  /* Confidence bar */
+  confidenceBar.style.width = `${data.confidence_score}%`;
+  confidenceLabel.innerText = `${data.confidence_score}% confidence`;
+
+  confidenceBar.classList.remove("bg-green-500", "bg-yellow-400", "bg-red-500");
+  if (data.confidence_score >= 70) {
+    confidenceBar.classList.add("bg-green-500");
+  } else if (data.confidence_score >= 50) {
+    confidenceBar.classList.add("bg-yellow-400");
+  } else {
+    confidenceBar.classList.add("bg-red-500");
+  }
+
+  /* AI Reasoning */
+  reasoningBox.innerHTML = `
+    <div class="space-y-3">
+      <p><b>1️⃣ Model Outlook</b><br>${data.explanation.ai_outlook}</p>
+      <p><b>2️⃣ Technical Confirmation</b><br>${data.explanation.technical_summary}</p>
+      <p><b>3️⃣ Market Environment</b><br>${data.explanation.market_context}</p>
+      <p class="border-t border-gray-600 pt-2"><b>4️⃣ Final AI Assessment</b><br>${data.explanation.final_advice}</p>
     </div>
   `;
+
+  drawChart(dates, closes, data.predicted_price);
 }
+
+/* Events */
+analyzeBtn.addEventListener("click", analyzeStock);

@@ -120,6 +120,9 @@ def predict_stock(data: StockInput):
         "symbol": data.symbol,
         "current_price": data.current_price,
         "predicted_price": round(predicted_price, 2),
+        "rsi": data.rsi,
+        "macd": data.macd,
+        "vix": data.vix,
         **reasoning,
         "interest_rate_used": data.interest_rate,
         "disclaimer": "This is AI-based analysis, not financial advice."

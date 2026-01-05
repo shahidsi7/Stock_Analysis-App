@@ -1,0 +1,8 @@
+TIME_STEPS = 30
+NUM_FEATURES = 9
+CLOSE_INDEX = 3
+
+# Model weights (future tuning)
+MODEL_WEIGHT = 0.45
+MOMENTUM_WEIGHT = 0.35
+RISK_WEIGHT = 0.20

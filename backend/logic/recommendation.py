@@ -1,3 +1,6 @@
+from backend.utils.constants import MODEL_WEIGHT, MOMENTUM_WEIGHT, RISK_WEIGHT
+
+
 def generate_recommendation(
     current_price: float,
     predicted_price: float,

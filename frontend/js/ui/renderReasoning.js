@@ -1,12 +1,17 @@
-export function renderReasoning(expl) {
-  document.getElementById("reasoningBox").innerHTML = `
-    <div class="space-y-3">
-      <p><b>1️⃣ Model Outlook</b><br>${expl.ai_outlook}</p>
-      <p><b>2️⃣ Technical Confirmation</b><br>${expl.technical_summary}</p>
-      <p><b>3️⃣ Market Environment</b><br>${expl.market_context}</p>
-      <p class="border-t border-gray-600 pt-2">
-        <b>4️⃣ Final AI Assessment</b><br>${expl.final_advice}
-      </p>
-    </div>
-  `;
+export function renderReasoning(reasoningText) {
+    const container = document.getElementById('reasoning-container');
+    if (!container) return;
+
+    // Use default text if reasoning is missing
+    const text = reasoningText || "AI analysis complete. No specific reasoning details provided by the model.";
+
+    container.innerHTML = `
+       <h3 class="text-lg font-bold mb-3 flex items-center">
+        <i class="fas fa-brain mr-2 text-purple-500"></i>
+        AI Reasoning
+       </h3>
+       <p class="text-slate-600 leading-relaxed">
+         ${text}
+       </p>
+    `;
 }

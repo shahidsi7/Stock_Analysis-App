@@ -1,118 +1,226 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>AI Stock Prediction Dashboard</title>
-
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StockMind AI - Intelligent Analysis</title>
+    <!-- Favicon Placeholder to prevent 404 error -->
+    <link rel="icon" href="data:,">
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js for Graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .fade-in { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .hidden { display: none; }
+        /* Hide scrollbar for cleaner look in some areas if needed */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
 </head>
+<body class="bg-slate-50 text-slate-900 min-h-screen font-sans selection:bg-blue-100">
 
-<body class="bg-gray-900 text-white min-h-screen">
-
-<div class="max-w-6xl mx-auto px-6 py-6 space-y-6">
-
-  <!-- SEARCH -->
-  <div class="bg-gray-800 rounded-xl p-5 flex gap-4 items-center">
-    <input
-      id="stockInput"
-      placeholder="Search stock (AAPL, MSFT, TSLA)"
-      class="p-2 rounded text-black w-64"
-    />
-    <button
-      id="analyzeBtn"
-      class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded font-semibold"
-    >
-      Analyze
-    </button>
-  </div>
-
-  <!-- LOADER -->
-  <div id="loader" class="hidden flex justify-center">
-    <div class="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-  </div>
-
-  <!-- RESULT -->
-  <div id="result" class="hidden space-y-6">
-
-    <!-- VERDICT -->
-    <div id="verdictCard" class="rounded-xl p-6 text-center text-2xl font-bold"></div>
-
-    <!-- PRICE + FORECAST -->
-    <div class="bg-gray-800 rounded-xl p-5">
-      <h2 class="text-lg font-semibold mb-4">📈 Price Trend & AI Forecast</h2>
-
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
-
-        <!-- AI FORECAST CARD -->
-        <div
-          id="forecastCard"
-          class="bg-gray-900 rounded-xl p-4 text-center border transition-all duration-300"
-        >
-          <p class="text-sm text-gray-400">AI Forecast</p>
-          <p id="forecastDirection" class="text-3xl font-bold mt-2">—</p>
-          <p class="text-sm mt-2">
-            Confidence: <b id="forecastConfidence">—</b>
-          </p>
-          <p class="text-xs text-gray-400 mt-1">Horizon: 5 days</p>
+    <!-- Navbar -->
+    <nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200 px-6 py-4">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-3 cursor-pointer" id="nav-logo">
+                <div class="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-500/20">S</div>
+                <span class="text-xl font-bold tracking-tight text-slate-800">StockMind AI</span>
+            </div>
+            <div class="hidden md:flex items-center space-x-6 text-sm font-medium text-slate-500">
+                <a id="nav-about" href="#" class="hover:text-blue-600 transition-colors">About</a>
+            </div>
         </div>
+    </nav>
 
-        <!-- CHART -->
-        <div class="md:col-span-3">
-          <canvas id="priceChart"></canvas>
-        </div>
-      </div>
-    </div>
+    <!-- MAIN CONTAINER -->
+    <main class="max-w-7xl mx-auto px-6 py-8 md:py-12">
 
-    <!-- INDICATORS -->
-    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
-      <div id="rsiCard" class="bg-gray-800 rounded-xl p-4 text-center"></div>
-      <div id="macdCard" class="bg-gray-800 rounded-xl p-4 text-center"></div>
-      <div id="vixCard" class="bg-gray-800 rounded-xl p-4 text-center"></div>
-      <div id="confidenceCard" class="bg-gray-800 rounded-xl p-4 text-center"></div>
-    </div>
+        <!-- === VIEW 1: HOME (Merged Header & Grid) === -->
+        <section id="home-view" class="fade-in">
+            <div class="flex flex-col lg:flex-row lg:items-start gap-10 lg:gap-16">
+                
+                <!-- Left Column: Header & Search (Sticky on Desktop) -->
+                <div class="lg:w-1/3 lg:sticky lg:top-32 space-y-8">
+                    <div class="space-y-4 text-center lg:text-left">
+                        <div class="inline-block px-3 py-1 bg-blue-50 text-blue-600 text-xs font-bold uppercase tracking-widest rounded-full mb-2 border border-blue-100">
+                            AI-Powered Analytics
+                        </div>
+                        <h1 class="text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 leading-tight">
+                            Trade Smarter, <br>
+                            <span class="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Not Harder.</span>
+                        </h1>
+                        <p class="text-lg text-slate-600 leading-relaxed">
+                            Leverage advanced LSTM Neural Networks to predict market trends. Get real-time buy/sell signals powered by Alpha Vantage data.
+                        </p>
+                    </div>
+                    
+                    <form id="search-form" class="relative w-full">
+                        <div class="relative group">
+                            <div class="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
+                            <div class="relative flex items-center bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
+                                <div class="pl-5 text-slate-400">
+                                    <i class="fas fa-search text-xl"></i>
+                                </div>
+                                <input type="text" id="stock-symbol" placeholder="Search ticker (e.g. NVDA)..." 
+                                   class="w-full px-4 py-5 bg-transparent focus:outline-none text-lg font-bold uppercase placeholder:normal-case placeholder:font-medium text-slate-800">
+                                <button type="submit" class="m-2 bg-slate-900 hover:bg-slate-800 text-white px-6 py-3 rounded-xl font-medium transition-all shadow-lg hover:shadow-xl active:scale-95">
+                                    Analyze
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
 
-    <!-- SIGNALS -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Right Column: Trending Grid -->
+                <div class="lg:w-2/3 w-full">
+                    <div class="flex items-center justify-between mb-8 pb-4 border-b border-slate-200">
+                        <h2 class="text-2xl font-bold flex items-center text-slate-800">
+                            <span class="mr-3 text-2xl">🔥</span> Trending Now
+                        </h2>
+                        <div class="flex items-center space-x-2">
+                            <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                            <span class="text-sm font-semibold text-slate-500 uppercase tracking-wide">Live Market</span>
+                        </div>
+                    </div>
+                    
+                    <div id="trending-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                        <!-- Javascript populates this -->
+                    </div>
+                </div>
+            </div>
+        </section>
 
-      <div class="bg-green-900/30 border border-green-500 rounded-xl p-4">
-        <h3 class="font-semibold mb-2 text-green-400">✅ What Supported This View</h3>
-        <ul id="positiveSignals" class="list-disc ml-5 text-sm space-y-1"></ul>
-      </div>
+        <!-- === VIEW 2: ANALYSIS (Results) === -->
+        <section id="analysis-view" class="hidden fade-in space-y-8">
+            
+            <button id="back-btn" class="group flex items-center text-slate-500 hover:text-blue-600 transition-colors mb-4 font-medium">
+                <div class="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center mr-3 group-hover:border-blue-200 group-hover:bg-blue-50 transition-all">
+                    <i class="fas fa-arrow-left text-sm group-hover:-translate-x-0.5 transition-transform"></i>
+                </div>
+                Back to Dashboard
+            </button>
 
-      <div class="bg-red-900/30 border border-red-500 rounded-xl p-4">
-        <h3 class="font-semibold mb-2 text-red-400">⚠ What Increased Risk</h3>
-        <ul id="riskSignals" class="list-disc ml-5 text-sm space-y-1"></ul>
-      </div>
+            <!-- Loading Spinner -->
+            <div id="loading" class="hidden flex flex-col items-center justify-center py-32">
+                <div class="relative">
+                    <div class="w-16 h-16 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin"></div>
+                    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                        <i class="fas fa-brain text-blue-600"></i>
+                    </div>
+                </div>
+                <p class="mt-6 text-lg font-medium text-slate-600 animate-pulse">Running AI Prediction Models...</p>
+                <p class="text-sm text-slate-400 mt-2">Fetching live data from Alpha Vantage</p>
+            </div>
 
-    </div>
+            <!-- Error Message Display -->
+            <div id="error-message" class="hidden max-w-2xl mx-auto bg-red-50 border border-red-100 text-red-800 p-8 rounded-2xl text-center shadow-lg"></div>
 
-    <!-- CONFIDENCE BAR -->
-    <div class="bg-gray-800 rounded-xl p-4">
-      <h3 class="font-semibold mb-2">📊 Confidence Breakdown</h3>
-      <div class="w-full bg-gray-700 rounded-full h-4 overflow-hidden">
-        <div
-          id="confidenceBar"
-          class="h-4 transition-all duration-700"
-          style="width:0%"
-        ></div>
-      </div>
-      <p id="confidenceLabel" class="text-sm text-gray-300 mt-2"></p>
-    </div>
+            <!-- Analysis Results -->
+            <div id="result" class="space-y-8 hidden">
+                
+                <!-- Merged Header & Dashboard Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    
+                    <!-- Left Column: Stock Info & Signal -->
+                    <div class="space-y-6">
+                        <!-- Stock Identity Card -->
+                        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 h-fit">
+                            <div class="flex justify-between items-start mb-4">
+                                <span class="px-3 py-1 bg-slate-100 text-slate-600 text-xs font-bold rounded-lg uppercase tracking-wider">US Equity</span>
+                                <div id="confidence-container" class="hidden md:block"></div>
+                            </div>
+                            <h1 id="stock-name-display" class="text-4xl font-extrabold tracking-tight text-slate-900 leading-tight mb-2"></h1>
+                            <div id="current-price" class="text-3xl font-medium text-slate-600 flex items-center"></div>
+                        </div>
 
-    <!-- AI REASONING -->
-    <div class="bg-gray-800 rounded-xl p-5">
-      <h2 class="text-lg font-semibold mb-3">🤖 AI Reasoning</h2>
-      <div id="reasoningBox" class="text-sm text-gray-200"></div>
-    </div>
+                        <!-- Signal Card -->
+                        <div id="signals-container" class=""></div>
+                    </div>
 
-  </div>
-</div>
+                    <!-- Right Column: Indicators & Chart -->
+                    <div class="lg:col-span-2 space-y-6">
+                        <!-- Indicators Row -->
+                        <div id="indicators-container" class="grid grid-cols-2 gap-4"></div>
+                        
+                        <!-- Chart -->
+                        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+                            <div class="flex items-center justify-between mb-6">
+                                <h3 class="text-lg font-bold text-slate-800 flex items-center">
+                                    <i class="fas fa-chart-area mr-2 text-blue-500"></i> Price Forecast
+                                </h3>
+                                <div class="flex gap-2">
+                                    <span class="flex items-center text-xs font-medium text-slate-500"><span class="w-2 h-2 rounded-full bg-blue-600 mr-1"></span> History</span>
+                                    <span class="flex items-center text-xs font-medium text-slate-500"><span class="w-2 h-2 rounded-full bg-emerald-500 mr-1"></span> AI Prediction</span>
+                                </div>
+                            </div>
+                            <canvas id="chartCanvas" class="w-full" style="max-height: 350px;"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Bottom Section: Reasoning & Pros/Cons -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-1">
+                        <div id="reasoning-container" class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 h-full"></div>
+                    </div>
+                    <div class="lg:col-span-2">
+                        <div id="pros-cons-container" class="grid grid-cols-1 md:grid-cols-2 gap-6 h-full"></div>
+                    </div>
+                </div>
+                
+                <!-- Hidden Forecast Data Container -->
+                <div id="forecast-container" class="hidden"></div>
+            </div>
+        </section>
 
-<script type="module" src="./js/app.js"></script>
+        <!-- === VIEW 4: ABOUT === -->
+        <section id="about-view" class="hidden fade-in space-y-12">
+            <div class="text-center max-w-3xl mx-auto py-10">
+                <div class="w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center text-white font-bold text-3xl shadow-lg shadow-blue-500/20 mx-auto mb-6">S</div>
+                <h1 class="text-5xl font-extrabold text-slate-900 mb-6">Democratizing Financial Intelligence</h1>
+                <p class="text-xl text-slate-600 leading-relaxed">
+                    StockMind AI combines state-of-the-art machine learning with real-time market data to provide institutional-grade analysis for everyone.
+                </p>
+            </div>
 
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm text-center">
+                    <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4 text-xl">
+                        <i class="fas fa-network-wired"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900 mb-2">LSTM Neural Networks</h3>
+                    <p class="text-slate-500 text-sm">Our core model utilizes Long Short-Term Memory networks to detect complex temporal patterns in price history.</p>
+                </div>
+                <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm text-center">
+                    <div class="w-12 h-12 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center mx-auto mb-4 text-xl">
+                        <i class="fas fa-database"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900 mb-2">Alpha Vantage Data</h3>
+                    <p class="text-slate-500 text-sm">We source high-fidelity daily adjusted close data from Alpha Vantage to ensure analytical accuracy.</p>
+                </div>
+                <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm text-center">
+                    <div class="w-12 h-12 bg-green-50 text-green-600 rounded-xl flex items-center justify-center mx-auto mb-4 text-xl">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900 mb-2">Transparent Logic</h3>
+                    <p class="text-slate-500 text-sm">No black boxes. We visualize our reasoning with Pros/Cons lists, RSI, and MACD indicators.</p>
+                </div>
+            </div>
+
+            <div class="bg-slate-900 text-white p-8 rounded-3xl text-center">
+                <h3 class="font-bold text-lg mb-2">Disclaimer</h3>
+                <p class="text-slate-400 text-sm max-w-2xl mx-auto">
+                    StockMind AI is for informational purposes only and does not constitute financial advice. All predictions are probabilistic estimates based on historical data. Trading stocks involves risk.
+                </p>
+            </div>
+        </section>
+
+    </main>
+
+    <script type="module" src="js/app.js"></script>
 </body>
 </html>

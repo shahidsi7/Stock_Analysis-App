@@ -1,13 +1,22 @@
-function ema(values, period) {
-  const k = 2 / (period + 1);
-  let e = values[0];
+export function calculateMACD(closes, fastPeriod = 12, slowPeriod = 26, signalPeriod = 9) {
+    if (closes.length < slowPeriod) return 0;
 
-  for (let i = 1; i < values.length; i++) {
-    e = values[i] * k + e * (1 - k);
-  }
-  return e;
+    const emaFast = calculateEMA(closes, fastPeriod);
+    const emaSlow = calculateEMA(closes, slowPeriod);
+
+    // MACD Line
+    const macdLine = emaFast - emaSlow;
+    
+    // We return just the MACD line value for simplicity as per your original logic
+    return macdLine;
 }
 
-export function calculateMACD(closes) {
-  return +(ema(closes, 12) - ema(closes, 26)).toFixed(4);
+function calculateEMA(data, period) {
+    const k = 2 / (period + 1);
+    let ema = data[0];
+    
+    for (let i = 1; i < data.length; i++) {
+        ema = (data[i] * k) + (ema * (1 - k));
+    }
+    return ema;
 }

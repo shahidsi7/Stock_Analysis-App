@@ -12,10 +12,6 @@ BASE_DIR = os.path.dirname(
 MODEL_PATH = os.path.join(BASE_DIR, "backend", "model", "lstm_model.h5")
 SCALER_PATH = os.path.join(BASE_DIR, "backend", "model", "scaler.pkl")
 
-TIME_STEPS = 30
-NUM_FEATURES = 9
-CLOSE_INDEX = 3
-
 model = load_model(MODEL_PATH, compile=False)
 scaler = joblib.load(SCALER_PATH)
 

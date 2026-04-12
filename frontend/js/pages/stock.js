@@ -1,15 +1,15 @@
-import { fetchStockData, sendForPrediction } from '../api/stockApi.js';
 import { calculateRSI } from '../indicators/rsi.js';
 import { calculateMACD } from '../indicators/macd.js';
 import { renderSignals } from '../ui/renderSignals.js';
 import { renderIndicators } from '../ui/renderIndicators.js';
-import { renderForecast } from '../ui/renderForecast.js';
 import { renderConfidence } from '../ui/renderConfidence.js';
 import { renderReasoning } from '../ui/renderReasoning.js';
 import { renderProsAndCons } from '../ui/renderProsCons.js';
 import { drawPriceChart } from '../charts/priceChart.js';
 import { generateDetailedReasoning } from '../utils/analysisFormatter.js';
 import { switchView } from '../router.js';
+import { fetchStockData, sendForPrediction, fetchFundamentals } from '../api/stockApi.js';
+import { renderFundamentals } from '../ui/renderFundamentals.js';
 
 export async function handleStockSelection(symbol) {
     switchView('analysis-view');
@@ -28,7 +28,7 @@ export async function handleStockSelection(symbol) {
 
     try {
         console.log(`1. Fetching data for ${symbol}...`);
-        
+
         // STEP 1: Get History from Alpha Vantage
         const rawData = await fetchStockData(symbol);
         
@@ -82,6 +82,10 @@ export async function handleStockSelection(symbol) {
 
         console.log("3. Rendering Results...");
 
+        // Fetch & render fundamentals (runs independently, won't block prediction)
+        const fundamentals = await fetchFundamentals(symbol);
+        renderFundamentals('fundamentals-container', fundamentals);
+
         // STEP 5: Render UI
         const currentPrice = closes[closes.length - 1];
         const prevPrice = closes[closes.length - 2];
@@ -118,7 +122,6 @@ export async function handleStockSelection(symbol) {
 
         renderSignals(finalRenderData); 
         renderIndicators({ rsi, macd });
-        renderForecast(prediction);
         renderConfidence(prediction.confidence_score);
         renderReasoning(detailedReasoning);
         

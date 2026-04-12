@@ -68,3 +68,44 @@ export async function sendForPrediction(payload) {
         throw error;
     }
 }
+
+export async function fetchFundamentals(symbol) {
+    try {
+        // Fetch both endpoints in parallel
+        const [overviewRes, insiderRes] = await Promise.all([
+            fetch(`${ALPHA_VANTAGE_BASE}?function=OVERVIEW&symbol=${symbol}&apikey=${API_KEY}`),
+            fetch(`${ALPHA_VANTAGE_BASE}?function=INSIDER_TRANSACTIONS&symbol=${symbol}&apikey=${API_KEY}`)
+        ]);
+
+        const overview = await overviewRes.json();
+        const insider = await insiderRes.json();
+
+        if (!overview || !overview.Symbol) return null;
+
+        // Derive insider sentiment — defaults to Neutral on free tier
+        let insider_sentiment = 'Neutral';
+        const transactions = insider?.data?.slice(0, 10) || [];
+        if (transactions.length > 0) {
+            let score = 0;
+            transactions.forEach(tx => {
+                const type = (tx.transactionType || '').toUpperCase();
+                if (type.includes('PURCHASE')) score += 1;
+                else if (type.includes('SALE')) score -= 1;
+            });
+            insider_sentiment = score > 0 ? 'Positive' : score < 0 ? 'Negative' : 'Neutral';
+        }
+
+        // Map to clean object
+        return {
+            market_cap: overview.MarketCapitalization,
+            pe_ratio: overview.PERatio,
+            beta: overview.Beta,
+            dividend_yield: overview.DividendYield,
+            insider_sentiment
+        };
+
+    } catch (err) {
+        console.error('fetchFundamentals failed:', err);
+        return null;
+    }
+}

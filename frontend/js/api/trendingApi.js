@@ -1,4 +1,4 @@
-import { US_STOCKS } from '../data/usStocks.js';
+import { TRENDING_STOCKS } from '../data/usStocks.js';
 
 // REPLACE 'YOUR_FMP_API_KEY' WITH YOUR ACTUAL KEY
 const API_KEY = 'gCKb2iBHfTMn3ytLziYTaS0WuvvWykML'; 

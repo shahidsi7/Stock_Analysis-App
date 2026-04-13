@@ -8,13 +8,14 @@ import { renderProsAndCons } from '../ui/renderProsCons.js';
 import { drawPriceChart } from '../charts/priceChart.js';
 import { generateDetailedReasoning } from '../utils/analysisFormatter.js';
 import { switchView } from '../router.js';
-import { fetchStockData, sendForPrediction, fetchFundamentals } from '../api/stockApi.js';
+import { fetchStockData, sendForPrediction, fetchFundamentals, fetchNews } from '../api/stockApi.js';
 import { renderFundamentals } from '../ui/renderFundamentals.js';
+import { renderNews } from '../ui/renderNews.js';
+
 
 export async function handleStockSelection(symbol) {
     switchView('analysis-view');
     
-    // Reset UI
     const nameDisplay = document.getElementById('stock-name-display');
     if (nameDisplay) nameDisplay.innerText = symbol;
     
@@ -32,7 +33,6 @@ export async function handleStockSelection(symbol) {
         // STEP 1: Get History from Alpha Vantage
         const rawData = await fetchStockData(symbol);
         
-        // Ensure we have enough data (Last 30 days needed for LSTM)
         if (!rawData || rawData.length < 30) {
             throw new Error(`Insufficient data. Need 30 days, got ${rawData ? rawData.length : 0}.`);
         }
@@ -40,28 +40,20 @@ export async function handleStockSelection(symbol) {
         const closes = rawData.map(d => d.close);
         const dates = rawData.map(d => d.date);
 
-        // STEP 2: Calculate Indicators (RSI, MACD) on Frontend
+        // STEP 2: Calculate Indicators
         const rsi = calculateRSI(closes);
         const macd = calculateMACD(closes);
-        const vix = 18.5; // Placeholder/Default VIX
-        const interestRate = 5.25; // Placeholder Interest Rate
+        const vix = 18.5;
+        const interestRate = 5.25;
 
-        // STEP 3: Format Payload for Backend
-        // Take exactly the last 30 days
+        // STEP 3: Format Payload
         const last30Rows = rawData.slice(-30); 
         
         const payload = {
             symbol: symbol,
             last_30_days: last30Rows.map(r => [
-                r.open,
-                r.high,
-                r.low,
-                r.close,
-                r.volume,
-                rsi,   
-                macd,  
-                vix,
-                interestRate
+                r.open, r.high, r.low, r.close, r.volume,
+                rsi, macd, vix, interestRate
             ]),
             current_price: closes[closes.length - 1],
             rsi: rsi,
@@ -75,24 +67,27 @@ export async function handleStockSelection(symbol) {
         // STEP 4: Get Prediction
         const prediction = await sendForPrediction(payload);
         
-        // SAFETY: Default values if backend response is incomplete
         if (!prediction.signal) prediction.signal = "NEUTRAL";
         if (prediction.confidence_score === undefined || prediction.confidence_score === null) prediction.confidence_score = 0;
         if (!prediction.predicted_price) prediction.predicted_price = closes[closes.length - 1];
 
         console.log("3. Rendering Results...");
 
-        // Fetch & render fundamentals (runs independently, won't block prediction)
-        const fundamentals = await fetchFundamentals(symbol);
-        renderFundamentals('fundamentals-container', fundamentals);
+        // STEP 5: Wait 1s to respect Alpha Vantage rate limit, then fetch fundamentals + news
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        const [fundamentals, news] = await Promise.all([
+            fetchFundamentals(symbol),
+            fetchNews(symbol)
+        ]);
+        renderFundamentals('fundamentals-container', fundamentals, prediction.predicted_price);
+        renderNews(news);
 
-        // STEP 5: Render UI
+        // STEP 6: Render UI
         const currentPrice = closes[closes.length - 1];
         const prevPrice = closes[closes.length - 2];
         const priceChange = ((currentPrice - prevPrice) / prevPrice) * 100;
         
         const priceEl = document.getElementById('current-price');
-        // Add color for price change
         const changeColor = priceChange >= 0 ? 'text-green-600' : 'text-red-600';
         const changeSign = priceChange >= 0 ? '+' : '';
         if (priceEl) {
@@ -104,34 +99,28 @@ export async function handleStockSelection(symbol) {
             `;
         }
 
-        // Generate Reasoning & Pros/Cons
         const detailedReasoning = generateDetailedReasoning(symbol, currentPrice, priceChange, rsi, macd, prediction, closes);
         
         let displaySignal = prediction.signal;
-        // Ensure displaySignal is a string
         if (typeof displaySignal !== 'string') displaySignal = "NEUTRAL";
 
         if (prediction.confidence_score >= 80) {
-             displaySignal = `STRONG ${displaySignal}`;
+            displaySignal = `STRONG ${displaySignal}`;
         } else if (prediction.confidence_score < 60) {
-             displaySignal = `WEAK ${displaySignal}`;
+            displaySignal = `WEAK ${displaySignal}`;
         }
         
-        // Create render object
         const finalRenderData = { ...prediction, signal: displaySignal };
 
         renderSignals(finalRenderData); 
         renderIndicators({ rsi, macd });
         renderConfidence(prediction.confidence_score);
         renderReasoning(detailedReasoning);
-        
-        // New: Render Enhanced Pros & Cons
         renderProsAndCons(symbol, currentPrice, priceChange, rsi, macd, prediction, closes);
 
-        // Draw Chart
-        drawPriceChart(dates, closes, prediction.predicted_price);
+        const volumes = rawData.map(d => d.volume);
+        drawPriceChart(dates, closes, prediction.predicted_price, volumes);
 
-        // Show Results
         if (loading) loading.classList.add('hidden');
         if (resultDiv) resultDiv.classList.remove('hidden');
 
@@ -149,4 +138,8 @@ export async function handleStockSelection(symbol) {
             `;
         }
     }
+}
+
+export function getLastAnalysis() {
+    return lastAnalysis;
 }

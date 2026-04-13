@@ -1,6 +1,6 @@
 import { renderTrendingGrid } from './ui/renderStockList.js';
-import { handleStockSelection } from './pages/stock.js';
 import { switchView } from './router.js';
+import { handleStockSelection } from './pages/stock.js';
 
 console.log("Loading StockMind App (Modular Version)...");
 
@@ -19,31 +19,26 @@ if (document.readyState === 'loading') {
 
 // --- Event Listeners ---
 function setupEventListeners() {
-    // Nav Links
     const navLogo = document.getElementById('nav-logo');
     const navAbout = document.getElementById('nav-about');
-    
-    // UI Elements
     const searchForm = document.getElementById('search-form');
     const backBtn = document.getElementById('back-btn');
+    const symbolInput = document.getElementById('stock-symbol');
 
-    // Navigation Logic
     if (navLogo) navLogo.addEventListener('click', () => switchView('home-view'));
     if (navAbout) navAbout.addEventListener('click', (e) => { e.preventDefault(); switchView('about-view'); });
 
-    // Search Logic
+    if (backBtn) backBtn.addEventListener('click', () => switchView('home-view'));
+
+    // Search submit
     if (searchForm) {
         searchForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            const symbolInput = document.getElementById('stock-symbol');
             if (symbolInput && symbolInput.value) {
-                handleStockSelection(symbolInput.value.toUpperCase());
+                handleStockSelection(symbolInput.value.toUpperCase().trim());
             }
         });
     }
 
-    // Back Button Logic
-    if (backBtn) {
-        backBtn.addEventListener('click', () => switchView('home-view'));
-    }
+
 }

@@ -7,7 +7,7 @@ const PREDICTION_API_URL = 'http://localhost:8000';
 
 // 2. Alpha Vantage API Configuration
 const ALPHA_VANTAGE_BASE = 'https://www.alphavantage.co/query';
-const API_KEY = 'VMJ5MCJHH0QTFYLP';
+const API_KEY = 'ALPHA_VANTAGE_KEY';
 
 // ============================================================
 //  CACHE HELPERS  (localStorage with per-key TTL)
@@ -214,7 +214,7 @@ export async function fetchFundamentals(symbol) {
 // ============================================================
 //  fetchNews  — NEWS_SENTIMENT (cached 1 hour)
 // ============================================================
-const GNEWS_API_KEY = '68408886518af58f9a2b039f765ac59f';
+const GNEWS_API_KEY = 'GNews_API_Key';
 
 export async function fetchNews(symbol) {
     const cacheKey = `news_${symbol}`;
